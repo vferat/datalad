@@ -541,6 +541,9 @@ class SSHRemoteIO(IOBase):
         # Note, that as we are in blocking mode, we can't easily fail on the
         # actual get (that is 'cat').
         # Therefore check beforehand.
+        src = PurePosixPath(src)
+        dst = Path(dst)
+
         if not self.exists(src):
             raise RIARemoteError("annex object {src} does not exist."
                                  "".format(src=src))
@@ -1558,7 +1561,7 @@ class ORARemote(SpecialRemote):
         # we can either repeat the checks, or just make two opportunistic
         # attempts (at most)
         try:
-            self.io.get(abs_key_path.as_posix(), filename, self.annex.progress)
+            self.io.get(abs_key_path, filename, self.annex.progress)
         except Exception as e1:
             if isinstance(self.io, HTTPRemoteIO):
                 # no client-side archive access over HTTP
