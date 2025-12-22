@@ -309,7 +309,8 @@ class BaseSSHConnection(object):
         # add source filepath(s) to scp command
         scp_cmd += ensure_list(source)
         # add destination path
-        scp_cmd += ['%s:%s' % (
+        scp_cmd += ['%s@%s:%s' % (
+            self.sshri.username or '',
             self.sshri.hostname,
             self._quote_filename(destination),
         )]

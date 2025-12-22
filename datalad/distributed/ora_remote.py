@@ -532,7 +532,7 @@ class SSHRemoteIO(IOBase):
         self._run('mkdir -p {}'.format(sh_quote(str(path.as_posix()))))
 
     def symlink(self, target, link_name):
-        self._run('ln -s {} {}'.format(sh_quote(str(target.as_posix())), sh_quote(str(link_name))))
+        self._run('ln -s {} {}'.format(sh_quote(str(target.as_posix())), sh_quote(str(link_name.as_posix()))))
 
     def put(self, src, dst, progress_cb):
         self.ssh.put(str(src), str(dst.as_posix()))
@@ -588,7 +588,7 @@ class SSHRemoteIO(IOBase):
 
     def rename(self, src, dst):
         with self.ensure_writeable(dst.parent.as_posix()):
-            self._run('mv {} {}'.format(sh_quote(str(src.as_posix())), sh_quote(str(dst.as_posix()))))
+            self._run('mv {} {}'.format(sh_quote(str(src.as_posix())), sh_quote(str(dst.as_posix()))), check=True)
 
     def remove(self, path):
         try:
@@ -600,7 +600,7 @@ class SSHRemoteIO(IOBase):
 
     def remove_dir(self, path):
         with self.ensure_writeable(path.parent.as_posix()):
-            self._run('rmdir {}'.format(sh_quote(str(path.as_posix()))))
+            self._run('rmdir {}'.format(sh_quote(str(path.as_posix()))), check=True)
 
     def exists(self, path):
         try:
@@ -1532,6 +1532,13 @@ class ORARemote(SpecialRemote):
 
         try:
             self.push_io.put(filename, tmp_path, self.annex.progress)
+        except Exception as e:
+            # whatever went wrong, we don't want to leave the transfer location
+            # blocked
+            self.push_io.remove(tmp_path) 
+            raise e
+
+        try:
             # copy done, atomic rename to actual target
             self.push_io.rename(tmp_path, key_path)
         except Exception as e:
