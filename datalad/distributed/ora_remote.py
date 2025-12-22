@@ -1248,7 +1248,7 @@ class ORARemote(SpecialRemote):
             target_ri = path.as_uri()
 
         try:
-            file_content = self.io.read_file(path).strip().split('|')
+            file_content = self.io.read_file(path.as_posix()).strip().split('|')
 
         # Note, that we enhance the reporting here, as the IO classes don't
         # uniformly operate on that kind of RI (which is more informative
@@ -1553,7 +1553,7 @@ class ORARemote(SpecialRemote):
         # we can either repeat the checks, or just make two opportunistic
         # attempts (at most)
         try:
-            self.io.get(abs_key_path, filename, self.annex.progress)
+            self.io.get(abs_key_path.as_posix(), filename, self.annex.progress)
         except Exception as e1:
             if isinstance(self.io, HTTPRemoteIO):
                 # no client-side archive access over HTTP
