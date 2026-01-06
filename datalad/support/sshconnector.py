@@ -309,7 +309,8 @@ class BaseSSHConnection(object):
         # add source filepath(s) to scp command
         scp_cmd += ensure_list(source)
         # add destination path
-        scp_cmd += ['%s:%s' % (
+        scp_cmd += ['%s@%s:%s' % (
+            self.sshri.username,
             self.sshri.hostname,
             self._quote_filename(destination),
         )]
@@ -346,7 +347,7 @@ class BaseSSHConnection(object):
         self.open()
         scp_cmd = self._get_scp_command_spec(recursive, preserve_attrs)
         # add source filepath(s) to scp command, prefixed with the remote host
-        scp_cmd += ["%s:%s" % (self.sshri.hostname, self._quote_filename(s))
+        scp_cmd += ["%s@%s:%s" % (self.sshri.username, self.sshri.hostname, self._quote_filename(s))
                     for s in ensure_list(source)]
         # add destination path
         scp_cmd += [destination]

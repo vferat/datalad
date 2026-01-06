@@ -529,19 +529,21 @@ class SSHRemoteIO(IOBase):
                                         # anymore
 
     def mkdir(self, path):
-        self._run('mkdir -p {}'.format(sh_quote(str(path))))
+        self._run('mkdir -p {}'.format(sh_quote(str(path.as_posix()))))
 
     def symlink(self, target, link_name):
-        self._run('ln -s {} {}'.format(sh_quote(str(target)), sh_quote(str(link_name))))
+        self._run('ln -s {} {}'.format(sh_quote(str(target.as_posix())), sh_quote(str(link_name.as_posix()))))
 
     def put(self, src, dst, progress_cb):
-        self.ssh.put(str(src), str(dst))
+        self.ssh.put(str(src), str(dst.as_posix()))
 
     def get(self, src, dst, progress_cb):
-
         # Note, that as we are in blocking mode, we can't easily fail on the
         # actual get (that is 'cat').
         # Therefore check beforehand.
+        src = PurePosixPath(src)
+        dst = Path(dst)
+
         if not self.exists(src):
             raise RIARemoteError("annex object {src} does not exist."
                                  "".format(src=src))
@@ -588,24 +590,24 @@ class SSHRemoteIO(IOBase):
                     progress_cb(bytes_received)
 
     def rename(self, src, dst):
-        with self.ensure_writeable(dst.parent):
-            self._run('mv {} {}'.format(sh_quote(str(src)), sh_quote(str(dst))))
+        with self.ensure_writeable(dst.parent.as_posix()):
+            self._run('mv {} {}'.format(sh_quote(str(src.as_posix())), sh_quote(str(dst.as_posix()))), check=True)
 
     def remove(self, path):
         try:
-            with self.ensure_writeable(path.parent):
-                self._run('rm {}'.format(sh_quote(str(path))), check=True)
+            with self.ensure_writeable(path.parent.as_posix()):
+                self._run('rm {}'.format(sh_quote(str(path.as_posix()))), check=True)
         except RemoteCommandFailedError as e:
             raise RIARemoteError(f"Unable to remove {path} "
                                  "or to obtain write permission in parent directory.") from e
 
     def remove_dir(self, path):
-        with self.ensure_writeable(path.parent):
-            self._run('rmdir {}'.format(sh_quote(str(path))))
+        with self.ensure_writeable(path.parent.as_posix()):
+            self._run('rmdir {}'.format(sh_quote(str(path.as_posix()))), check=True)
 
     def exists(self, path):
         try:
-            self._run('test -e {}'.format(sh_quote(str(path))), check=True)
+            self._run('test -e {}'.format(sh_quote(str(path.as_posix()))), check=True)
             return True
         except RemoteCommandFailedError:
             return False
@@ -666,7 +668,6 @@ class SSHRemoteIO(IOBase):
                     progress_cb(bytes_received)
 
     def read_file(self, file_path):
-
         cmd = "cat  {}".format(sh_quote(str(file_path)))
         try:
             out = self._run(cmd, no_output=False, check=True)
@@ -694,7 +695,7 @@ class SSHRemoteIO(IOBase):
         cmd = "printf '%s' {} {} {}".format(
             sh_quote(content),
             mode,
-            sh_quote(str(file_path)))
+            sh_quote(str(file_path.as_posix())))
         try:
             self._run(cmd, check=True)
         except RemoteCommandFailedError as e:
@@ -1534,6 +1535,13 @@ class ORARemote(SpecialRemote):
 
         try:
             self.push_io.put(filename, tmp_path, self.annex.progress)
+        except Exception as e:
+            # whatever went wrong, we don't want to leave the transfer location
+            # blocked
+            self.push_io.remove(tmp_path) 
+            raise e
+
+        try:
             # copy done, atomic rename to actual target
             self.push_io.rename(tmp_path, key_path)
         except Exception as e:
