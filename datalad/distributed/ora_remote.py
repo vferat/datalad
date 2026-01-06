@@ -1248,7 +1248,7 @@ class ORARemote(SpecialRemote):
             target_ri = path.as_uri()
 
         try:
-            file_content = self.io.read_file(path).strip().split('|')
+            file_content = self.io.read_file(path.as_posix()).strip().split('|')
 
         # Note, that we enhance the reporting here, as the IO classes don't
         # uniformly operate on that kind of RI (which is more informative
